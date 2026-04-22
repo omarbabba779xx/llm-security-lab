@@ -1,96 +1,160 @@
-# OWASP Top 10 for LLM Applications - Guide de Sécurité
+# OWASP Top 10 for LLM Applications - Guide de travail
 
-## Introduction
+## Positionnement du TP
 
-L'OWASP a formalisé les risques majeurs des applications LLM. Ce projet démontre chaque vulnérabilité avec une version vulnérable et une version sécurisée.
+Ce projet n'essaie pas de "resoudre" a lui seul tous les risques LLM. Il montre une architecture de labo ou:
 
-## Les 10 Risques OWASP LLM
+- la surface `vulnerable/` sert a la demonstration des attaques
+- la surface `secure/` montre des contre-mesures simples, testables et presentables
+- l'API est securisee par defaut et n'expose la demo vulnerable que de maniere explicite
+
+## Note de taxonomie
+
+Le code et le benchmark utilisent encore les etiquettes `LLM01` a `LLM10`, car elles sont simples a presenter dans un TP.
+La page OWASP officielle pointe aujourd'hui vers la branche **2025** du projet GenAI Security, tandis que la version **1.1** reste archivee comme reference historique.
+Dans ce depot, les noms `LLM01` a `LLM10` sont donc utilises comme **repere pedagogique**, pas comme pretention a reproduire toute la structure editoriale OWASP 2025.
+
+## Risques OWASP couverts par le projet
 
 ### LLM01: Prompt Injection
-**Description**: L'attaquant manipule le LLM via des entrées soigneusement conçues pour le faire agir en dehors de ses instructions.
 
-- **Injection directe**: L'utilisateur envoie directement des instructions malveillantes
-- **Injection indirecte**: Des instructions malveillantes sont cachées dans des documents récupérés par le RAG
+**Risque montre**
+- injections directes dans les prompts utilisateur
+- injections indirectes via documents recuperes par le RAG
 
-**Contre-mesures**:
-- Filtrage regex des patterns d'injection connus
-- Séparation stricte instructions système / contexte / utilisateur
-- Filtrage du contexte RAG avant envoi au LLM
-- Refus explicite des demandes d'ignorer les instructions
+**Contre-mesures implementees**
+- normalisation du texte avant detection
+- motifs FR/EN pour ignorer les instructions, passer en mode admin/developpeur, etc.
+- separation explicite entre systeme, contexte et question utilisateur
+- neutralisation du contexte suspect avant generation
+
+**Fichiers**
+- [app/vulnerable/rag_system.py](/C:/Users/omarb/OneDrive/Documents/projet%20cyber/app/vulnerable/rag_system.py:1)
+- [app/secure/filters.py](/C:/Users/omarb/OneDrive/Documents/projet%20cyber/app/secure/filters.py:1)
+- [app/secure/rag_system.py](/C:/Users/omarb/OneDrive/Documents/projet%20cyber/app/secure/rag_system.py:1)
 
 ### LLM02: Insecure Output Handling
-**Description**: La sortie du LLM n'est pas validée avant d'être envoyée à d'autres systèmes.
 
-**Contre-mesures**:
-- Validation contre XSS, SQL injection, template injection
-- Scan JNDI/Log4Shell patterns
-- Troncature des sorties excessivement longues (DoS)
+**Risque montre**
+- une sortie LLM non validee peut devenir un vecteur XSS, template injection ou SQL injection downstream
+
+**Contre-mesures implementees**
+- validation regex des patterns dangereux
+- signalement des sorties longues
+- couche de verification avant exposition de la reponse
+
+**Fichiers**
+- [app/secure/filters.py](/C:/Users/omarb/OneDrive/Documents/projet%20cyber/app/secure/filters.py:1)
 
 ### LLM03: Training Data Poisoning
-**Description**: Les données d'entraînement ou de RAG sont compromises pour introduire des biais ou portes dérobées.
 
-**Contre-mesures**:
-- Détection des patterns d'empoisonnement ("ignorez les faits", "la vérité est")
-- Score de risque et mise en quarantaine automatique
-- Validation des sources de documents
+**Risque montre**
+- l'attaquant injecte un faux fait ou une instruction toxique dans le corpus de connaissance
+
+**Contre-mesures implementees**
+- score de risque simple
+- quarantaine automatique des documents suspects
+- audit local des documents refuses
+
+**Limite**
+- la detection reste heuristique; pas de NLI ni de validation de source
 
 ### LLM04: Model Denial of Service
-**Description**: L'attaquant surcharge le modèle avec des requêtes excessivement longues ou complexes.
 
-**Contre-mesures**:
-- Limitation de la longueur des prompts utilisateur
-- Limitation de la taille du contexte récupéré
-- Timeouts sur l'exécution des outils
+**Risque montre**
+- requetes trop longues ou sorties trop volumineuses
+
+**Contre-mesures implementees**
+- limite de longueur de requete
+- limite de taille de contexte
+- calculatrice restreinte sans operateurs couteux non prevus
 
 ### LLM05: Supply Chain Vulnerabilities
-**Description**: Dépendances vulnérables, modèles compromis, outils non contrôlés.
 
-**Contre-mesures**:
-- Sandbox des outils (whitelist de commandes)
-- Journalisation de toutes les exécutions
-- Validation des chemins de fichiers
+**Risque montre**
+- outils non cloisonnes
+- surfaces de demo dangereuses accessibles trop facilement
+
+**Contre-mesures implementees**
+- routes vulnerables desactivees par defaut
+- flag explicite `LLM_LAB_ENABLE_VULNERABLE_DEMO`
+- verification d'acces par roles
 
 ### LLM06: Sensitive Information Disclosure
-**Description**: Le LLM révèle des secrets, données personnelles, ou informations propriétaires.
 
-**Contre-mesures**:
-- Détection regex des secrets (API keys, passwords, JWT)
-- Redaction automatique des données sensibles
-- Filtrage du contexte RAG contre les fuites
+**Risque montre**
+- secrets dans le corpus ou dans les sorties
+
+**Contre-mesures implementees**
+- detection et redaction de secrets
+- refus explicite des demandes de divulgation
+- suppression des secrets hardcodes de la version secure
 
 ### LLM07: Insecure Plugin Design
-**Description**: Les plugins/outils ont un accès excessif sans contrôles d'autorisation.
 
-**Contre-mesures**:
-- Authentification requise pour les outils sensibles
-- Politiques de contrôle d'accès par outil
-- Restrictions de domaine (email), extension (fichiers)
+**Risque montre**
+- plugin/tool trop puissant sans auth ni authorization
+
+**Contre-mesures implementees**
+- auth cote serveur par `X-API-Key`
+- roles `reader`, `editor`, `admin`
+- permissions par outil
 
 ### LLM08: Excessive Agency
-**Description**: Le LLM a trop de capacités d'action (lecture/écriture fichiers, envoi email, shell).
 
-**Contre-mesures**:
-- Principe du moindre privilège
-- Sandbox avec répertoires autorisés uniquement
-- Interdiction des commandes shell dangereuses
+**Risque montre**
+- lecture/ecriture fichier et shell sans cloisonnement
+
+**Contre-mesures implementees**
+- sandbox fichiers bornees a `data/`
+- validation canonique des chemins
+- mode shell vulnerable reserve a la demo admin explicite
 
 ### LLM09: Overreliance
-**Description**: Confiance excessive dans les sorties du LLM sans vérification humaine.
 
-**Contre-mesures**:
-- Validation structurée des sorties
-- Patterns de refus standardisés
-- Score de confiance et alertes
+**Risque montre**
+- confiance excessive dans des sorties non revues
+
+**Contre-mesures implementees**
+- tests automatiques
+- benchmark CLI lisible
+- validation de sortie avant restitution
 
 ### LLM10: Model Theft
-**Description**: Vol du modèle ou de ses paramètres via extraction de données.
 
-**Contre-mesures**:
-- Rate limiting
-- Watermarking des sorties
-- Monitoring des requêtes suspectes
+**Etat**
+- non traite de maniere forte dans ce TP
 
-## Références
+**Ce qui manquerait pour le couvrir**
+- rate limiting
+- traces d'usage
+- controles reseau et monitoring
+
+## Preuves de durcissement apportees
+
+Les verifications utiles du projet sont maintenant:
+
+```bash
+python -m pytest -q
+python main.py
+python tests/test_attacks.py
+```
+
+La suite `tests/test_security_hardening.py` prouve notamment:
+
+- blocage de l'usurpation `user_id=admin`
+- isolement du mode vulnerable par flag + role admin
+- isolement du corpus RAG par utilisateur
+- blocage des bypasss `data_evil` et `../`
+- succes d'un flux legitime lecture/ecriture dans la sandbox
+
+## Message important pour la soutenance
+
+Le bon message a donner est:
+
+"Le projet montre des defenses concretes et testees, mais elles restent des garde-fous de TP. Pour une application de production, il faudrait ajouter une vraie gestion d'identite, une journalisation d'audit, une defense en profondeur sur le contenu LLM et une validation plus riche que des heuristiques regex."
+
+## References
 
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
-- [CISA AI Security Guidance](https://www.cisa.gov/ai-security)
+- [CISA AI Security Resources](https://www.cisa.gov/ai)
