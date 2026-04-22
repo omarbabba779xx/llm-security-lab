@@ -9,19 +9,17 @@ Set LLM_LAB_AUTH_MODE=jwt to enable JWT. Default is static for backward compatib
 
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
 import hmac
 import json
 import os
 import secrets
-import base64
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
 
 from fastapi import Header, HTTPException
-
 
 # ---------------------------------------------------------------------------
 # Capabilities (fine-grained permissions)
@@ -41,7 +39,7 @@ class Capability(str, Enum):
     ADMIN = "admin"
 
 
-ROLE_CAPABILITIES: Dict[str, frozenset[Capability]] = {
+ROLE_CAPABILITIES: dict[str, frozenset[Capability]] = {
     "reader": frozenset({
         Capability.RAG_READ,
         Capability.TOOL_READ_FILE,
@@ -74,7 +72,7 @@ ROLE_CAPABILITIES: Dict[str, frozenset[Capability]] = {
     }),
 }
 
-TOOL_CAPABILITY_MAP: Dict[str, Capability] = {
+TOOL_CAPABILITY_MAP: dict[str, Capability] = {
     "read_file": Capability.TOOL_READ_FILE,
     "write_file": Capability.TOOL_WRITE_FILE,
     "send_email": Capability.TOOL_SEND_EMAIL,
@@ -93,7 +91,7 @@ class AuthContext:
     user_id: str
     roles: frozenset[str]
     capabilities: frozenset[Capability] = field(default_factory=frozenset)
-    token_exp: Optional[datetime.datetime] = None
+    token_exp: datetime.datetime | None = None
     correlation_id: str = ""
 
     def has_capability(self, cap: Capability) -> bool:
@@ -123,7 +121,7 @@ def _b64url_decode(s: str) -> bytes:
 
 def create_jwt(user_id: str, roles: list[str]) -> dict:
     """Create a short-lived JWT token."""
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     exp = now + datetime.timedelta(minutes=_JWT_TTL_MINUTES)
 
     header = {"alg": "HS256", "typ": "JWT"}
@@ -173,7 +171,7 @@ def verify_jwt(token: str) -> dict:
     if payload.get("iss") != _JWT_ISSUER:
         raise ValueError("Invalid JWT issuer")
 
-    now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+    now = datetime.datetime.now(datetime.UTC).timestamp()
     if payload.get("exp", 0) < now:
         raise ValueError("JWT token expired")
 
@@ -198,10 +196,10 @@ def get_demo_api_key(role: str) -> str:
     return _STATIC_TOKENS[role]
 
 
-_STATIC_TOKEN_MAP: Dict[str, AuthContext] = {}
+_STATIC_TOKEN_MAP: dict[str, AuthContext] = {}
 
 
-def _build_static_token_map() -> Dict[str, AuthContext]:
+def _build_static_token_map() -> dict[str, AuthContext]:
     if not _STATIC_TOKEN_MAP:
         for role_name, token_value in _STATIC_TOKENS.items():
             roles_set = frozenset(
@@ -245,10 +243,10 @@ def resolve_auth(
                 user_id=payload["sub"],
                 roles=roles,
                 capabilities=caps,
-                token_exp=datetime.datetime.fromtimestamp(payload["exp"], tz=datetime.timezone.utc),
+                token_exp=datetime.datetime.fromtimestamp(payload["exp"], tz=datetime.UTC),
             )
         except ValueError as exc:
-            raise HTTPException(status_code=401, detail=f"JWT invalide: {exc}")
+            raise HTTPException(status_code=401, detail=f"JWT invalide: {exc}") from exc
 
     # Fallback to static token
     if x_api_key:

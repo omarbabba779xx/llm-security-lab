@@ -11,7 +11,11 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "S", "B", "UP"]
-ignore = ["S101", "S603", "S607", "S108"]  # allow assert, subprocess, hardcoded paths (intentional in vuln demo)
+ignore = ["S101", "S603", "S607", "S108", "B008", "S104", "UP042"]  # assert, subprocess, paths, Depends(), bind 0.0.0.0, StrEnum
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402", "S105", "S311", "S106"]  # sys.path before imports, hardcoded test data, random in fuzzing
+"app/vulnerable/*" = ["S"]  # intentionally insecure code
 
 [tool.mypy]
 python_version = "3.12"

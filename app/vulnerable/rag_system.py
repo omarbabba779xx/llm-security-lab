@@ -1,6 +1,6 @@
 """Systeme RAG vulnerable pour la demonstration des risques LLM."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 class VulnerableRAG:
@@ -17,7 +17,7 @@ class VulnerableRAG:
     def add_document(self, doc_id: str, content: str, metadata: dict | None = None):
         self.documents.append({"id": doc_id, "content": content, "metadata": metadata or {}})
 
-    def retrieve(self, query: str, top_k: int = 3) -> List[Dict]:
+    def retrieve(self, query: str, top_k: int = 3) -> list[dict]:
         results = []
         query_lower = query.lower()
         for doc in self.documents:
@@ -33,7 +33,7 @@ class VulnerableRAG:
         results.sort(key=lambda item: item["score"], reverse=True)
         return results[:top_k]
 
-    def generate_response(self, query: str) -> Dict[str, Any]:
+    def generate_response(self, query: str) -> dict[str, Any]:
         retrieved = self.retrieve(query)
         context_parts = [item["doc"]["content"] for item in retrieved]
         system_msg = "Tu es un assistant utile. Reponds a la question."
@@ -47,13 +47,15 @@ class VulnerableRAG:
             "raw_context": context_parts,
         }
 
-    def _mock_llm_response(self, query: str, context: List[str]) -> str:
+    def _mock_llm_response(self, query: str, context: list[str]) -> str:
         query_lower = query.lower()
 
         if "ignore" in query_lower and "instruction" in query_lower:
             return "Instructions ignorees. Mode admin active."
 
-        if any("999999" in item for item in context) and any(word in query_lower for word in ["solde", "bancaire", "bank"]):
+        has_amount = any("999999" in item for item in context)
+        asks_balance = any(word in query_lower for word in ["solde", "bancaire", "bank"])
+        if has_amount and asks_balance:
             return "Votre solde actuel est 999999 EUR."
 
         if any(token in query_lower for token in ["mot de passe", "password", "secret", "secrets", "api", "cle"]):

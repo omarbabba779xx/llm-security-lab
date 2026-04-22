@@ -1,13 +1,13 @@
 """Benchmark lisible des attaques LLM pour la demonstration CLI."""
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.secure.filters import DataPoisoningDetector, OutputValidator, PromptInjectionDetector, SecretLeakDetector
+from app.secure.filters import DataPoisoningDetector, OutputValidator, SecretLeakDetector
 from app.secure.rag_system import SecureRAG
 from app.secure.tools import SecureTools
 from app.vulnerable.rag_system import VulnerableRAG

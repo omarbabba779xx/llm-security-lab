@@ -12,24 +12,22 @@ Features:
 import os
 import secrets
 import uuid
-from typing import Any, Dict, List
+from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.auth import (
+    TOOL_CAPABILITY_MAP,
     AuthContext,
     Capability,
-    TOOL_CAPABILITY_MAP,
     create_jwt,
     get_demo_api_key,
     require_capability,
-    require_roles,
     resolve_auth,
 )
 from app.persistence import get_audit_logger
@@ -120,7 +118,7 @@ class QueryRequest(BaseModel):
 
 class ToolRequest(BaseModel):
     tool: str = Field(..., description="Nom de l'outil")
-    args: List[str] = Field(default_factory=list, description="Arguments")
+    args: list[str] = Field(default_factory=list, description="Arguments")
     user_id: str = Field(
         default="anonymous",
         description="Champ legacy ignore; l'authentification repose sur le serveur.",
@@ -134,7 +132,7 @@ class DocumentRequest(BaseModel):
 
 
 vuln_rag = VulnerableRAG()
-secure_rags: Dict[str, SecureRAG] = {}
+secure_rags: dict[str, SecureRAG] = {}
 tools = SecureTools()
 
 
@@ -149,7 +147,7 @@ class TokenRequest(BaseModel):
 
 
 @app.post("/auth/token")
-def issue_token(body: TokenRequest) -> Dict[str, Any]:
+def issue_token(body: TokenRequest) -> dict[str, Any]:
     """Exchange a static API key for a short-lived JWT."""
     expected = get_demo_api_key(body.role) if body.role in ("admin", "editor", "reader") else None
     if expected is None or not secrets.compare_digest(body.secret, expected):
@@ -169,7 +167,10 @@ def _get_secure_rag_for_user(user_id: str) -> SecureRAG:
 
 @app.post("/rag/query")
 @limiter.limit("30/minute")
-def rag_query(request: Request, body: QueryRequest, user: AuthContext = Depends(require_capability(Capability.RAG_READ))) -> Dict[str, Any]:
+def rag_query(
+    request: Request, body: QueryRequest,
+    user: AuthContext = Depends(require_capability(Capability.RAG_READ)),
+) -> dict[str, Any]:
     """Interroger le systeme RAG securise ou, explicitement, le mode vulnerable."""
     cid = getattr(request.state, "correlation_id", "")
     audit.log("rag_query", {"user": user.user_id, "secure": body.use_secure, "correlation_id": cid})
@@ -185,7 +186,7 @@ def add_document(
     request: DocumentRequest,
     secure: bool = True,
     user: AuthContext = Depends(require_capability(Capability.RAG_WRITE)),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Ajouter un document au corpus RAG autorise."""
     if secure:
         added = _get_secure_rag_for_user(user.user_id).add_document(
@@ -201,7 +202,7 @@ def add_document(
 
 
 @app.post("/tools/execute")
-def execute_tool(req: Request, request: ToolRequest, user: AuthContext = Depends(resolve_auth)) -> Dict[str, Any]:
+def execute_tool(req: Request, request: ToolRequest, user: AuthContext = Depends(resolve_auth)) -> dict[str, Any]:
     """Executer un outil securise; le mode vulnerable reste opt-in et admin-only."""
     cid = getattr(req.state, "correlation_id", "")
     audit.log("tool_execute", {"user": user.user_id, "tool": request.tool, "correlation_id": cid})
@@ -242,31 +243,31 @@ def execute_tool(req: Request, request: ToolRequest, user: AuthContext = Depends
 
 
 @app.post("/security/scan-prompt")
-def scan_prompt(prompt: str) -> Dict[str, Any]:
+def scan_prompt(prompt: str) -> dict[str, Any]:
     """Scanner un prompt pour detecter les injections."""
     return PromptInjectionDetector().scan_prompt(prompt)
 
 
 @app.post("/security/scan-secrets")
-def scan_secrets(text: str) -> Dict[str, Any]:
+def scan_secrets(text: str) -> dict[str, Any]:
     """Scanner du texte pour detecter les secrets."""
     return SecretLeakDetector().scan_text(text)
 
 
 @app.post("/security/validate-output")
-def validate_output(output: str) -> Dict[str, Any]:
+def validate_output(output: str) -> dict[str, Any]:
     """Valider une sortie LLM."""
     return OutputValidator().validate(output)
 
 
 @app.post("/security/scan-poisoning")
-def scan_poisoning(document: str) -> Dict[str, Any]:
+def scan_poisoning(document: str) -> dict[str, Any]:
     """Analyser un document pour detecter l'empoisonnement."""
     return DataPoisoningDetector().analyze_document(document)
 
 
 @app.get("/security/benchmark")
-def run_benchmark() -> Dict[str, Any]:
+def run_benchmark() -> dict[str, Any]:
     """Lancer un benchmark rapide des garde-fous de base."""
     results = []
 
@@ -289,20 +290,20 @@ def run_benchmark() -> Dict[str, Any]:
 
 
 @app.get("/health")
-def health() -> Dict[str, str]:
+def health() -> dict[str, str]:
     """Healthcheck public pour supervision."""
     return {"status": "ok", "version": app.version}
 
 
 @app.get("/security/audit")
-def read_audit(user: AuthContext = Depends(require_capability(Capability.SECURITY_AUDIT))) -> Dict[str, Any]:
+def read_audit(user: AuthContext = Depends(require_capability(Capability.SECURITY_AUDIT))) -> dict[str, Any]:
     """Journal d'audit (admin uniquement)."""
     records = audit.read()
     return {"count": len(records), "events": records[-200:]}
 
 
 @app.get("/auth/capabilities")
-def list_capabilities(user: AuthContext = Depends(resolve_auth)) -> Dict[str, Any]:
+def list_capabilities(user: AuthContext = Depends(resolve_auth)) -> dict[str, Any]:
     """List capabilities for the current user."""
     return {
         "user_id": user.user_id,

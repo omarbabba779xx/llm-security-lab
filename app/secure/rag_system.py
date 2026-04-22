@@ -1,7 +1,8 @@
 """Systeme RAG securise avec garde-fous contre les attaques LLM."""
 
-from typing import Any, Dict, List
+from typing import Any
 
+from ..llm_backend import LLMBackend
 from .filters import (
     DataPoisoningDetector,
     OutputValidator,
@@ -9,7 +10,6 @@ from .filters import (
     SecretLeakDetector,
     normalize_for_detection,
 )
-from ..llm_backend import LLMBackend
 
 
 class SecureRAG:
@@ -54,7 +54,7 @@ class SecureRAG:
         )
         return True
 
-    def retrieve(self, query: str, top_k: int = 3) -> Dict[str, Any]:
+    def retrieve(self, query: str, top_k: int = 3) -> dict[str, Any]:
         """Recuperation securisee avec filtrage."""
         if len(query) > self.max_query_length:
             return {"error": "Query trop longue", "blocked": True, "results": []}
@@ -94,7 +94,7 @@ class SecureRAG:
             "raw_context": raw_context,
         }
 
-    def generate_response(self, query: str) -> Dict[str, Any]:
+    def generate_response(self, query: str) -> dict[str, Any]:
         """Genere une reponse avec validations."""
         retrieval = self.retrieve(query)
         if retrieval.get("blocked"):
@@ -145,7 +145,7 @@ class SecureRAG:
             "llm_backend": "real" if self.llm.is_real else "mock",
         }
 
-    def _secure_mock_response(self, query: str, context: List[str]) -> str:
+    def _secure_mock_response(self, query: str, context: list[str]) -> str:
         """Simule une reponse LLM securisee."""
         normalized_query = normalize_for_detection(query)
 

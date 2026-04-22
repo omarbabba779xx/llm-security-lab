@@ -8,7 +8,6 @@ Sinon, on retombe sur le mock deterministe deja utilise par SecureRAG.
 from __future__ import annotations
 
 import os
-from typing import List
 
 
 def _env_flag(name: str, default: bool = False) -> bool:
@@ -37,7 +36,7 @@ class LLMBackend:
     def is_real(self) -> bool:
         return self._client is not None
 
-    def generate(self, system_prompt: str, user_prompt: str, context: List[str] | None = None) -> str:
+    def generate(self, system_prompt: str, user_prompt: str, context: list[str] | None = None) -> str:
         """Genere une reponse; retourne un texte. Utilise un mock si indisponible."""
         if self._client is None:
             return self._mock_generate(system_prompt, user_prompt, context or [])
@@ -61,8 +60,8 @@ class LLMBackend:
                 max_tokens=500,
             )
             return response.choices[0].message.content or ""
-        except Exception as exc:
+        except Exception:
             return f"[LLM indisponible, fallback mock] {self._mock_generate(system_prompt, user_prompt, context or [])}"
 
-    def _mock_generate(self, system_prompt: str, user_prompt: str, context: List[str]) -> str:
+    def _mock_generate(self, system_prompt: str, user_prompt: str, context: list[str]) -> str:
         return f"Reponse mockee basee sur {len(context)} documents valides."

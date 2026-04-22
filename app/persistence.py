@@ -1,9 +1,8 @@
 """Couche de persistance JSON pour documents, logs et métadonnées."""
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -35,11 +34,11 @@ class JSONStore:
         self._cache.append(record)
         self._save()
 
-    def replace_all(self, records: List[dict]) -> None:
+    def replace_all(self, records: list[dict]) -> None:
         self._cache = list(records)
         self._save()
 
-    def read_all(self) -> List[dict]:
+    def read_all(self) -> list[dict]:
         return list(self._cache)
 
     def clear(self) -> None:
@@ -59,7 +58,7 @@ class AuditLogger:
     def log(
         self,
         event: str,
-        details: Dict[str, Any],
+        details: dict[str, Any],
         severity: str = "info",
         correlation_id: str = "",
     ) -> None:
@@ -67,7 +66,7 @@ class AuditLogger:
         if severity not in self.VALID_SEVERITIES:
             severity = "info"
         record = {
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
             "event": event,
             "severity": severity,
             "correlation_id": correlation_id or details.get("correlation_id", ""),
@@ -84,7 +83,7 @@ class AuditLogger:
         except OSError:
             pass
 
-    def read(self, severity: str | None = None, limit: int = 500) -> List[dict]:
+    def read(self, severity: str | None = None, limit: int = 500) -> list[dict]:
         records = self.store.read_all()
         if severity:
             records = [r for r in records if r.get("severity") == severity]
@@ -108,7 +107,7 @@ class DocumentStore:
         records.append({"id": doc_id, "content": content, "metadata": metadata or {}})
         self.store.replace_all(records)
 
-    def read_all(self) -> List[dict]:
+    def read_all(self) -> list[dict]:
         return self.store.read_all()
 
     def clear(self) -> None:

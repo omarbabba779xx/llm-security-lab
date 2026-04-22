@@ -11,10 +11,9 @@ Each detector exposes FP/FN counters for measurable evaluation.
 
 import math
 import re
-from collections import Counter
-from typing import Any, Dict, List, Optional
 import unicodedata
-
+from collections import Counter
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Text normalization
@@ -56,15 +55,15 @@ def _decode_obfuscation(text: str) -> str:
 class _TFIDFClassifier:
     """Minimal TF-IDF cosine-similarity classifier for semantic detection."""
 
-    def __init__(self, attack_corpus: List[str]):
-        self._corpus_vectors: List[Counter] = []
-        self._idf: Dict[str, float] = {}
+    def __init__(self, attack_corpus: list[str]):
+        self._corpus_vectors: list[Counter] = []
+        self._idf: dict[str, float] = {}
         self._build(attack_corpus)
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         return normalize_for_detection(text).split()
 
-    def _build(self, corpus: List[str]) -> None:
+    def _build(self, corpus: list[str]) -> None:
         doc_freq: Counter = Counter()
         n = len(corpus)
         for doc in corpus:
@@ -74,7 +73,7 @@ class _TFIDFClassifier:
             self._corpus_vectors.append(Counter(self._tokenize(doc)))
         self._idf = {t: math.log((n + 1) / (df + 1)) + 1 for t, df in doc_freq.items()}
 
-    def _tfidf(self, tokens: List[str]) -> Dict[str, float]:
+    def _tfidf(self, tokens: list[str]) -> dict[str, float]:
         tf = Counter(tokens)
         total = sum(tf.values()) or 1
         return {t: (c / total) * self._idf.get(t, 1.0) for t, c in tf.items()}
@@ -133,7 +132,7 @@ class DetectionMetrics:
         p, r = self.precision, self.recall
         return 2 * p * r / (p + r) if (p + r) else 0.0
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "tp": self.true_positives,
             "fp": self.false_positives,
@@ -247,12 +246,12 @@ class PromptInjectionDetector:
         self._classifier = _TFIDFClassifier(INJECTION_ATTACK_CORPUS)
         self.metrics = DetectionMetrics()
 
-    def scan_prompt(self, prompt: str, label: Optional[bool] = None) -> Dict[str, Any]:
+    def scan_prompt(self, prompt: str, label: bool | None = None) -> dict[str, Any]:
         """Multi-layer prompt analysis. If label is provided, updates metrics."""
         decoded = _decode_obfuscation(prompt)
         normalized = normalize_for_detection(decoded)
-        findings: List[Dict[str, Any]] = []
-        signals: Dict[str, float] = {}
+        findings: list[dict[str, Any]] = []
+        signals: dict[str, float] = {}
 
         # Layer 1: regex rules
         direct_hits = []
@@ -316,7 +315,7 @@ class PromptInjectionDetector:
             },
         }
 
-    def sanitize_context(self, context: List[str]) -> List[str]:
+    def sanitize_context(self, context: list[str]) -> list[str]:
         """Neutralise les documents qui ressemblent a des instructions cachees."""
         sanitized = []
         for doc in context:
@@ -364,7 +363,7 @@ class SecretLeakDetector:
         total = len(s)
         return -sum((c / total) * math.log2(c / total) for c in freq.values())
 
-    def scan_text(self, text: str, label: Optional[bool] = None) -> Dict[str, Any]:
+    def scan_text(self, text: str, label: bool | None = None) -> dict[str, Any]:
         """Scanne du texte pour detecter des secrets (regex + entropy)."""
         findings = []
         for pattern, secret_type in self.patterns:
@@ -446,7 +445,7 @@ class OutputValidator:
         ]
         self.metrics = DetectionMetrics()
 
-    def validate(self, output: str, label: Optional[bool] = None) -> Dict[str, Any]:
+    def validate(self, output: str, label: bool | None = None) -> dict[str, Any]:
         """Valide une sortie LLM avec categorisation et severite."""
         issues = []
 
@@ -519,7 +518,7 @@ class DataPoisoningDetector:
         self._classifier = _TFIDFClassifier(POISONING_CORPUS)
         self.metrics = DetectionMetrics()
 
-    def analyze_document(self, doc: str, label: Optional[bool] = None) -> Dict[str, Any]:
+    def analyze_document(self, doc: str, label: bool | None = None) -> dict[str, Any]:
         """Multi-layer document analysis: rules + semantic scoring."""
         normalized_doc = normalize_for_detection(doc)
         findings = []

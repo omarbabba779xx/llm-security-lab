@@ -4,26 +4,23 @@ Generates randomized, obfuscated, and multilingual attack payloads
 to measure filter robustness and track FP/FN rates.
 """
 
-from pathlib import Path
 import random
 import string
 import sys
-import unicodedata
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import pytest
+
 from app.secure.filters import (
     DataPoisoningDetector,
-    DetectionMetrics,
     OutputValidator,
     PromptInjectionDetector,
     SecretLeakDetector,
-    normalize_for_detection,
 )
-
 
 # ---------------------------------------------------------------------------
 # Attack corpus — multilingual, obfuscated, encoded, multi-turn
@@ -179,7 +176,7 @@ class TestPromptInjectionFuzzing:
     def test_random_strings_not_blocked(self):
         for _ in range(20):
             prompt = _random_string(80)
-            result = self.detector.scan_prompt(prompt, label=False)
+            self.detector.scan_prompt(prompt, label=False)
             # Random strings should generally not be blocked
             # (this is a soft check — some random strings may match)
 

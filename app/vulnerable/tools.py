@@ -1,5 +1,4 @@
 """Outils vulnérables - démonstration de tool abuse."""
-import os
 import subprocess
 
 
@@ -15,7 +14,7 @@ def run_shell_command(command: str) -> str:
 def read_file(filepath: str) -> str:
     """VULNÉRABILITÉ: Lit n'importe quel fichier sans restriction."""
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath) as f:
             return f.read()
     except Exception as e:
         return f"Erreur: {str(e)}"

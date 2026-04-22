@@ -1,12 +1,12 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 import app.api as api_module
 from app.auth import get_demo_api_key
@@ -14,7 +14,8 @@ from app.secure.filters import DataPoisoningDetector, PromptInjectionDetector
 from app.secure.tools import SecureTools, ToolSandbox
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:The 'app' shortcut is now deprecated. Use the explicit style 'transport=WSGITransport\\(app=...\\)' instead.:DeprecationWarning"
+    "ignore:The 'app' shortcut is now deprecated. Use the explicit style "
+    "'transport=WSGITransport\\(app=...\\)' instead.:DeprecationWarning"
 )
 
 

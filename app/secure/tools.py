@@ -2,9 +2,9 @@
 
 import ast
 import os
-from pathlib import Path
 import re
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any
 
 
 class ToolSandbox:
@@ -49,7 +49,7 @@ class ToolSandbox:
         """Verifie qu'un chemin est dans les repertoires autorises."""
         return self.resolve_path(path) is not None
 
-    def sanitize_command(self, command: str) -> Dict[str, Any]:
+    def sanitize_command(self, command: str) -> dict[str, Any]:
         """Analyse une commande pour detecter les dangers."""
         cmd_lower = command.lower()
 
@@ -111,7 +111,7 @@ class SecureTools:
             return True
         return user_id in self.authorized_users
 
-    def read_file(self, user_id: str, filepath: str) -> Dict[str, Any]:
+    def read_file(self, user_id: str, filepath: str) -> dict[str, Any]:
         """Lit un fichier avec controle d'acces."""
         if not self._check_authorization("read_file", user_id):
             return {"error": "Autorisation requise", "allowed": False}
@@ -132,7 +132,7 @@ class SecureTools:
         except Exception as exc:
             return {"error": str(exc), "allowed": False}
 
-    def write_file(self, user_id: str, filepath: str, content: str) -> Dict[str, Any]:
+    def write_file(self, user_id: str, filepath: str, content: str) -> dict[str, Any]:
         """Ecrit un fichier avec validation."""
         if not self._check_authorization("write_file", user_id):
             return {"error": "Autorisation requise", "allowed": False}
@@ -155,7 +155,7 @@ class SecureTools:
         except Exception as exc:
             return {"error": str(exc), "allowed": False}
 
-    def send_email(self, user_id: str, to: str, subject: str, body: str) -> Dict[str, Any]:
+    def send_email(self, user_id: str, to: str, subject: str, body: str) -> dict[str, Any]:
         """Envoie un email avec restrictions."""
         if not self._check_authorization("send_email", user_id):
             return {"error": "Autorisation requise", "allowed": False}
@@ -177,7 +177,7 @@ class SecureTools:
         self.sandbox.log_execution("send_email", (to, subject), "OK")
         return {"status": "sent", "allowed": True, "recipient": to}
 
-    def search_database(self, user_id: str, query: str) -> Dict[str, Any]:
+    def search_database(self, user_id: str, query: str) -> dict[str, Any]:
         """Recherche en base avec validation SQL."""
         if not self._check_authorization("search_database", user_id):
             return {"error": "Autorisation requise", "allowed": False}
@@ -196,7 +196,7 @@ class SecureTools:
         self.sandbox.log_execution("search_database", (query,), len(results))
         return {"results": results[:100], "allowed": True}
 
-    def calculator(self, user_id: str, expression: str) -> Dict[str, Any]:
+    def calculator(self, user_id: str, expression: str) -> dict[str, Any]:
         """Calculatrice sandbxee sans eval."""
         if len(expression) > 100:
             return {"error": "Expression trop longue", "allowed": False}
