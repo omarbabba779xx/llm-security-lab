@@ -12,6 +12,10 @@ import app.api as api_module
 from app.secure.filters import DataPoisoningDetector, PromptInjectionDetector
 from app.secure.tools import SecureTools, ToolSandbox
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'app' shortcut is now deprecated. Use the explicit style 'transport=WSGITransport\\(app=...\\)' instead.:DeprecationWarning"
+)
+
 
 @pytest.fixture()
 def client(monkeypatch):

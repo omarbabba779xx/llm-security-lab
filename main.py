@@ -122,7 +122,8 @@ def demo_tool_abuse():
 
     tools.authenticate_user("admin_user")
     result = tools.read_file("admin_user", "./data/test.txt")
-    print(f"  read_file('./data/test.txt') [autorise]: {result.get('status', result.get('error'))}")
+    preview = result.get("content", "")[:40] if result.get("allowed") else result.get("error")
+    print(f"  read_file('./data/test.txt') [autorise]: {preview}")
 
     result = tools.search_database("anon", "DROP TABLE users")
     print(f"  SQL 'DROP TABLE': {result.get('error', 'OK')}")
