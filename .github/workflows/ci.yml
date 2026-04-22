@@ -79,7 +79,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install bandit pip-audit semgrep
+          pip install bandit pip-audit
 
       - name: Bandit (Python security linter)
         run: bandit -r app/ -f json -o bandit-report.json --severity-level medium || true
@@ -92,7 +92,10 @@ jobs:
         run: pip-audit --requirement requirements.txt --format json || true
 
       - name: Semgrep (SAST)
-        run: semgrep scan --config auto app/ --json --output semgrep-report.json || true
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: p/python
+        continue-on-error: true
 
       - name: Upload security reports
         if: always()
@@ -101,7 +104,6 @@ jobs:
           name: security-reports
           path: |
             bandit-report.json
-            semgrep-report.json
 
   sbom:
     name: SBOM Generation
